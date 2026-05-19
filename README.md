@@ -10,6 +10,19 @@ Excel / CSV file with URLs, or a Google Sheets URL.
 
 ![Completion modal — celebratory glyph, before/after preview, duration + Open in Finder](images/finish.png)
 
+## Download
+
+Pre-built installers are published on the
+[**Releases**](https://github.com/cbeneyto/bgremover-app/releases/latest)
+page. The latest version ships:
+
+- `Background Remover-<version>-arm64.dmg` — macOS Apple Silicon
+- `Background Remover Setup <version>.exe` — Windows x64 NSIS installer
+
+Both are **unsigned**, so first launch triggers a Gatekeeper /
+SmartScreen prompt — see [*Distributing to a third party*](#distributing-to-a-third-party)
+below for the click-by-click bypass.
+
 ---
 
 ## Features
