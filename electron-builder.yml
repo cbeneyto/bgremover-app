@@ -24,14 +24,25 @@ extraResources:
     filter:
       - "**/*"
 
-# `sharp` and `onnxruntime-node` ship native `.node` binaries that
-# can't be executed from inside an asar archive. Unpack them so the
-# Node sidecar can dlopen them at runtime.
+# The vanilla-Node sidecar (`out/worker/index.js` running under
+# `Resources/node-bin/node`) cannot read files inside an asar
+# archive — asar is an Electron extension that vanilla Node doesn't
+# know about. Anything the worker `require()`s at runtime must be
+# unpacked so Node's regular file-system resolver can see it.
+#
+# We unpack **every** node_modules subdirectory rather than trying
+# to enumerate the worker's transitive dependency tree. That tree
+# is large (transformers.js pulls in onnxruntime-common, jszip,
+# protobufjs, etc.) and changes between minor library versions, so
+# every targeted pattern eventually turns into a whack-a-mole.
+# Unpacking everything costs a few extra ms at install time and
+# zero ms at runtime — asar is primarily a startup-speed
+# optimization for Electron's own code paths (main + preload +
+# renderer), which still live inside `app.asar`. The only thing in
+# `app.asar.unpacked/` is `node_modules/` itself.
 asar: true
 asarUnpack:
-  - "**/node_modules/sharp/**"
-  - "**/node_modules/@img/**"
-  - "**/node_modules/onnxruntime-node/**"
+  - "**/node_modules/**"
 
 mac:
   target:

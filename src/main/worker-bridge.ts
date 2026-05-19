@@ -91,6 +91,30 @@ function resolveWorkerArgs(): string[] {
   ]
 }
 
+/**
+ * Resolve the directory that contains the `node_modules` the worker
+ * needs at runtime (sharp, onnxruntime-node, @huggingface/transformers).
+ *
+ * In dev that's the repo root (cwd). In a packaged build it's
+ * `Resources/app.asar.unpacked/` — electron-builder extracts native
+ * `.node` modules there (see `asarUnpack` in electron-builder.yml).
+ *
+ * We pass this as the spawn `cwd` AND via NODE_PATH so Node's module
+ * resolution algorithm finds the deps no matter what path the
+ * worker happens to be loaded from. Without this, the packaged
+ * worker can fail to `require('sharp')` because its parent dir
+ * (`Resources/worker/`) has no `node_modules/` next to it — Node's
+ * upward search then ends in a directory that doesn't contain the
+ * deps, and the process exits before the bridge even hears about
+ * it.
+ */
+function resolveDepsRoot(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, "app.asar.unpacked")
+  }
+  return process.cwd()
+}
+
 export function startWorker(onEvent: (event: WorkerOutbound) => void): void {
   if (worker) return
   listener = onEvent
@@ -98,18 +122,56 @@ export function startWorker(onEvent: (event: WorkerOutbound) => void): void {
   const nodeBin = resolveNodeBinary()
   const args = resolveWorkerArgs()
   const modelDir = getModelDir()
+  const depsRoot = resolveDepsRoot()
+  const depsNodeModules = join(depsRoot, "node_modules")
 
-  worker = spawn(nodeBin, args, {
-    stdio: ["pipe", "pipe", "pipe"],
-    env: {
-      ...process.env,
-      HF_HOME: modelDir,
-      TRANSFORMERS_CACHE: modelDir,
-      HF_HUB_CACHE: modelDir,
-      // Force CPU; `onnxruntime-node` doesn't ship GPU prebuilts and
-      // would otherwise probe for CUDA on Linux/Win.
-      ONNXRUNTIME_PROVIDERS: "cpu",
-    },
+  // Log up-front. Packaged builds have no obvious place to surface
+  // startup failures otherwise — these lines land in the macOS
+  // Console / Windows Event Viewer.
+  process.stderr.write(
+    `[worker] spawning: ${nodeBin} ${args.join(" ")}\n` +
+      `[worker]   cwd: ${depsRoot}\n` +
+      `[worker]   NODE_PATH: ${depsNodeModules}\n` +
+      `[worker]   modelDir: ${modelDir}\n`,
+  )
+
+  try {
+    worker = spawn(nodeBin, args, {
+      cwd: depsRoot,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: {
+        ...process.env,
+        // Make Node's module resolution find the deps that
+        // electron-builder unpacked from asar.
+        NODE_PATH: depsNodeModules,
+        HF_HOME: modelDir,
+        TRANSFORMERS_CACHE: modelDir,
+        HF_HUB_CACHE: modelDir,
+        // Force CPU; `onnxruntime-node` doesn't ship GPU prebuilts
+        // and would otherwise probe for CUDA on Linux/Win.
+        ONNXRUNTIME_PROVIDERS: "cpu",
+      },
+    })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    process.stderr.write(`[worker] spawn threw: ${message}\n`)
+    setModelStatus({
+      state: "error",
+      error: `Worker failed to start: ${message}`,
+    })
+    worker = null
+    return
+  }
+
+  // `spawn()` does NOT throw on missing executable — it emits an
+  // `error` event asynchronously. Without this handler the worker
+  // would silently never start.
+  worker.on("error", (err) => {
+    process.stderr.write(`[worker] spawn error: ${err.message}\n`)
+    setModelStatus({
+      state: "error",
+      error: `Worker failed to start: ${err.message}`,
+    })
   })
 
   worker.stdout.setEncoding("utf8")
@@ -128,6 +190,10 @@ export function startWorker(onEvent: (event: WorkerOutbound) => void): void {
     process.stderr.write(
       `[worker] exited code=${code} signal=${signal ?? "-"}\n`,
     )
+    // Code !== 0 means the worker crashed unexpectedly. If we
+    // can't recover (the binary itself is broken), surface
+    // something to the user instead of looping silently.
+    const unexpected = code !== 0 && code !== null
     worker = null
     stdoutBuf = createJsonlBuffer()
     if (shouldRespawnAfterExit()) {
@@ -139,6 +205,11 @@ export function startWorker(onEvent: (event: WorkerOutbound) => void): void {
       setTimeout(() => {
         if (!permanentShutdown) startWorker(cb)
       }, 600)
+    } else if (unexpected) {
+      setModelStatus({
+        state: "error",
+        error: `Worker exited unexpectedly (code ${code}).`,
+      })
     }
   })
 
