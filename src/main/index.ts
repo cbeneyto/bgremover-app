@@ -38,7 +38,17 @@ function resolveWindowIcon(): Electron.NativeImage | undefined {
 
 function createWindow(): void {
   const icon = resolveWindowIcon()
-  mainWindow = new BrowserWindow({
+  // Construct into a local var first so any synchronous Electron
+  // events fired during the constructor see a sane reference if
+  // they reach back through `mainWindow`. The previous shape
+  // (assigning to `mainWindow` and registering a separate
+  // `browser-window-created` handler that read `mainWindow`)
+  // crashed with "Object has been destroyed" on the macOS dock
+  // re-open path: the new BrowserWindow's constructor fires
+  // `browser-window-created` synchronously BEFORE the assignment
+  // completes, so the handler saw the previous (now-destroyed)
+  // window.
+  const win = new BrowserWindow({
     width: 1100,
     height: 760,
     minWidth: 880,
@@ -56,16 +66,36 @@ function createWindow(): void {
     },
   })
 
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: "deny" }
   })
 
+  // Surface the initial model status as soon as the renderer is
+  // ready to receive it. We bind to the new window directly
+  // instead of the module-level `mainWindow` so a stale reference
+  // can never sneak in.
+  win.webContents.once("did-finish-load", () => {
+    if (!win.isDestroyed()) {
+      win.webContents.send("model:status", getModelStatus())
+    }
+  })
+
+  // Null out the module-level pointer when the window goes away so
+  // every other site (IPC handlers, worker event forwarders) sees
+  // `null` instead of a dangling destroyed object. The "closed"
+  // event fires AFTER all webContents teardown — safe to clear.
+  win.on("closed", () => {
+    if (mainWindow === win) mainWindow = null
+  })
+
   if (isDev && process.env["ELECTRON_RENDERER_URL"]) {
-    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"])
+    win.loadURL(process.env["ELECTRON_RENDERER_URL"])
   } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"))
+    win.loadFile(join(__dirname, "../renderer/index.html"))
   }
+
+  mainWindow = win
 }
 
 app.whenReady().then(async () => {
@@ -110,14 +140,12 @@ app.whenReady().then(async () => {
 
   createWindow()
 
-  // Surface the initial model status to the renderer once it's ready.
-  app.on("browser-window-created", () => {
-    if (!mainWindow) return
-    mainWindow.webContents.once("did-finish-load", () => {
-      mainWindow?.webContents.send("model:status", getModelStatus())
-    })
-  })
-
+  // macOS dock re-open. The "Object has been destroyed" bug was
+  // here: BEFORE we cleared `mainWindow` on close, this branch
+  // would still see the OLD destroyed reference and the
+  // browser-window-created handler (now moved into createWindow)
+  // would crash. With the closed-handler nulling mainWindow we
+  // can also rely on it as a safety net.
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
