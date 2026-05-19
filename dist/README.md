@@ -1,29 +1,23 @@
 # Background Remover — Distribution
 
 Built from this repo at version 0.1.0. Unsigned. First launch needs
-internet to download the model weights (~180 MB); after that the app
-runs fully offline.
+internet to download the model weights (~180 MB); after that the
+app runs fully offline.
 
 ## Files
 
 | File | Platform | Size | Type |
 |---|---|---|---|
 | `Background Remover-0.1.0-arm64.dmg` | macOS Apple Silicon | ~347 MB | Standard `.dmg` |
-| `Background Remover-0.1.0-win-x64.zip` | Windows x64 | ~421 MB | Portable folder (see notes) |
-
-The Windows artifact is a **zipped portable folder**, not an NSIS
-installer `.exe`. The build that produced these ran on Apple Silicon
-without wine installed, so the NSIS wrapper step couldn't run; the
-inner `.exe` and all its dependencies are intact and work. See the
-*Why a zip and not an installer?* section at the bottom for the
-proper-installer instructions.
+| `Background Remover Setup 0.1.0.exe` | Windows x64 | ~343 MB | NSIS installer |
 
 ## How to install — macOS
 
 1. Double-click `Background Remover-0.1.0-arm64.dmg`.
 2. Drag *Background Remover* to the Applications folder.
-3. **First launch only:** macOS will say *"Background Remover can't
-   be opened because Apple cannot check it for malicious software"*.
+3. **First launch only:** macOS Gatekeeper will say
+   *"Background Remover can't be opened because Apple cannot
+   check it for malicious software"*.
    - Click **Cancel** on that dialog.
    - Open Finder → Applications.
    - **Right-click** *Background Remover* → **Open**.
@@ -36,18 +30,14 @@ proper-installer instructions.
 
 ## How to install — Windows
 
-1. Download `Background Remover-0.1.0-win-x64.zip`.
-2. Right-click → **Extract All…**. Pick a destination (e.g. your
-   Desktop or `C:\Program Files\Background Remover`).
-3. Inside the extracted `win-unpacked` folder, double-click
-   `Background Remover.exe`.
-4. **First launch only:** Windows SmartScreen says *"Windows
-   protected your PC"*.
+1. Double-click `Background Remover Setup 0.1.0.exe`.
+2. Windows SmartScreen will say *"Windows protected your PC"*.
    - Click **More info**.
    - Click **Run anyway**.
-
-To keep a shortcut handy: right-click `Background Remover.exe` →
-*Send to* → *Desktop (create shortcut)*.
+3. The NSIS installer asks where to install. Pick a location,
+   click **Install**.
+4. Launch *Background Remover* from the Start menu (or the
+   shortcut the installer placed on your desktop).
 
 ## First-time setup inside the app
 
@@ -60,22 +50,24 @@ To keep a shortcut handy: right-click `Background Remover.exe` →
 4. Output PNGs land in your destination with transparent
    backgrounds.
 
-## Why a zip and not an installer? (for the dev side)
+## Where the app stores its files
 
-A native NSIS installer `.exe` requires wine on the build machine
-when cross-building from macOS. The build laptop didn't have wine
-installed at the time these artifacts were generated, so the
-electron-builder run produced the unpacked folder (`win-unpacked/`)
-which is fully functional, just not wrapped into a single
-self-extracting `.exe`. Zipping that folder gives the same end-user
-result minus the install wizard.
+| Thing | macOS | Windows |
+|---|---|---|
+| App data + model cache | `~/Library/Application Support/Background Remover/` | `%APPDATA%\Background Remover\` |
+| Model weights (~180 MB) | …`/models/briaai/RMBG-1.4/` | …`\models\briaai\RMBG-1.4\` |
+| Output PNGs | wherever you pick as the **Output folder** | same |
 
-To produce the proper installer instead:
+To start completely fresh: quit the app, delete the *Background
+Remover* folder above, relaunch. The model re-downloads on the
+next run.
 
-```bash
-brew install --cask wine-stable   # one-time, on the Mac build host
-npm run pack:win                  # rebuilds with NSIS wrapper
-```
+## Reporting issues
 
-The output replaces this zip with a `Background Remover Setup
-0.1.0.exe`. Full recipe in `docs/packaging.md`.
+Source repo: https://github.com/cbeneyto/bgremover-app
+
+When filing an issue please include:
+- OS + version (`About This Mac` or Windows *About* page)
+- The exact error message (the app's "Settings → About" panel
+  lists app/Electron/Node versions)
+- Steps to reproduce
