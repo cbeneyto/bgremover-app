@@ -1,0 +1,61 @@
+appId: com.tpp.bgremover
+productName: Background Remover
+copyright: Copyright © 2026 TPP
+
+directories:
+  output: release
+  buildResources: resources
+
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+
+# Include the bundled worker + the per-platform Node sidecar binary
+# under Resources/.  electron-builder substitutes ${platform} and
+# ${arch} from the build target.
+extraResources:
+  - from: resources/node-binaries/${os}-${arch}
+    to: node-bin
+    filter:
+      - "**/*"
+  - from: out/worker
+    to: worker
+    filter:
+      - "**/*"
+
+# `sharp` and `onnxruntime-node` ship native `.node` binaries that
+# can't be executed from inside an asar archive. Unpack them so the
+# Node sidecar can dlopen them at runtime.
+asar: true
+asarUnpack:
+  - "**/node_modules/sharp/**"
+  - "**/node_modules/@img/**"
+  - "**/node_modules/onnxruntime-node/**"
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  category: public.app-category.graphics-design
+  identity: null
+  # icon.icns is built by `npm run icons` (macOS only). electron-builder
+  # picks it up automatically; specifying the path also works.
+  icon: resources/icon.icns
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # On Windows we let electron-builder generate the .ico from icon.png
+  # (it auto-resizes to the multi-size ICO format). Saves us a tool.
+  icon: resources/icon.png
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true

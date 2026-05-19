@@ -1,0 +1,163 @@
+/*
+ * Inter Variable. Bundled locally via @fontsource-variable/inter so
+ * the app has zero font dependency on the network. The variable
+ * font ships as one ~80 KB WOFF2 covering weights 100–900, much
+ * smaller than four static cuts (400/500/600/700 ≈ 100 KB total)
+ * and far more flexible if we ever want a 550 mid-weight for a
+ * specific element.
+ *
+ * Why Inter instead of "Google Sans": Google Sans is a Google-
+ * proprietary face — listed on fonts.google.com but **not** under
+ * the OFL the rest of Google Fonts uses. Inter is OFL, designed
+ * specifically for screen UI, and the de facto standard for modern
+ * desktop / web apps (Figma, Linear, GitHub, Vercel).
+ */
+@import "@fontsource-variable/inter/wght.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ─── Theme tokens ────────────────────────────────────────────────────
+ *
+ * The whole palette lives here as CSS variables in `R G B` triplet
+ * form (no commas). `tailwind.config.ts` wraps each variable in
+ * `rgb(var(--c-...) / <alpha-value>)` so opacity utilities like
+ * `bg-canvas/80` keep working.
+ *
+ * Light mode is the default (`:root`). The `.dark` class on <html>
+ * flips every token. See useTheme.ts for the toggle logic.
+ *
+ * Naming:
+ *   --c-canvas         page background
+ *   --c-surface        panel background (cards, drawer, inputs)
+ *   --c-hairline       primary border
+ *   --c-hairline-subtle internal dividers / segmented control track
+ *   --c-ink            primary text
+ *   --c-ink-muted      secondary text
+ *   --c-ink-subtle     tertiary text / helper copy
+ *   --c-action         primary button background (high contrast)
+ *   --c-action-hover   primary button hover
+ *   --c-on-action      foreground on primary button (always inverse)
+ *   --c-accent         single accent — focus rings, running dot
+ *   --c-accent-hover, --c-accent-tint, --c-accent-rule
+ *   --c-success / --c-warning / --c-danger
+ *   --c-shadow         the colour shadows are tinted with
+ */
+:root {
+  /* Light theme — warm stone palette. */
+  --c-canvas: 250 250 249;
+  --c-surface: 255 255 255;
+  --c-hairline: 231 229 228;
+  --c-hairline-subtle: 245 245 244;
+
+  --c-ink: 28 25 23;
+  --c-ink-muted: 87 83 78;
+  --c-ink-subtle: 168 162 158;
+
+  --c-action: 12 10 9;
+  --c-action-hover: 41 37 36;
+  --c-on-action: 250 250 249;
+
+  --c-accent: 15 118 110;
+  --c-accent-hover: 17 94 89;
+  --c-accent-tint: 240 253 250;
+  --c-accent-rule: 94 234 212;
+
+  --c-success: 5 150 105;
+  --c-warning: 180 83 9;
+  --c-danger: 185 28 28;
+
+  --c-shadow: 28 25 23;
+}
+
+.dark {
+  /* Dark theme — warm near-black with bumped accent for contrast. */
+  --c-canvas: 12 10 9;
+  --c-surface: 28 25 23;
+  --c-hairline: 41 37 36;
+  --c-hairline-subtle: 22 19 18;
+
+  --c-ink: 250 250 249;
+  --c-ink-muted: 168 162 158;
+  --c-ink-subtle: 120 113 108;
+
+  --c-action: 250 250 249;
+  --c-action-hover: 231 229 228;
+  --c-on-action: 12 10 9;
+
+  --c-accent: 45 212 191;     /* teal-400 — lighter for dark bg */
+  --c-accent-hover: 94 234 212;
+  --c-accent-tint: 22 78 75;
+  --c-accent-rule: 17 94 89;
+
+  --c-success: 52 211 153;    /* emerald-400 */
+  --c-warning: 251 191 36;    /* amber-400 */
+  --c-danger: 248 113 113;    /* red-400 */
+
+  --c-shadow: 0 0 0;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  html {
+    background-color: rgb(var(--c-canvas));
+    color: rgb(var(--c-ink));
+  }
+
+  body {
+    margin: 0;
+    background-color: rgb(var(--c-canvas));
+    color: rgb(var(--c-ink));
+    font-family: theme("fontFamily.sans");
+    font-size: 14px;
+    line-height: 20px;
+    font-feature-settings: "ss01", "cv01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .drag-region {
+    -webkit-app-region: drag;
+  }
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--c-hairline));
+    border-radius: 999px;
+    border: 2px solid rgb(var(--c-canvas));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--c-ink-subtle));
+  }
+
+  :focus-visible {
+    outline: none;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    @apply outline-none ring-2 ring-accent/25 ring-offset-2 ring-offset-surface;
+  }
+}

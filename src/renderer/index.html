@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Background Remover</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' ws: wss: http: https:;"
+    />
+
+    <!--
+      Boot script. Runs before any styles or the JS bundle parse so
+      the splash + first paint render in the right theme. Reads the
+      same localStorage key useSettings owns, falls back to
+      prefers-color-scheme. Failure-tolerant — any error here just
+      means we paint in light mode for a moment, which is fine.
+    -->
+    <script>
+      (function applyBootTheme() {
+        try {
+          var pref = "system"
+          var raw = localStorage.getItem("bgremover.settings.v1")
+          if (raw) {
+            var parsed = JSON.parse(raw)
+            if (parsed && typeof parsed.theme === "string") pref = parsed.theme
+          }
+          var isDark =
+            pref === "dark" ||
+            (pref === "system" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches)
+          document.documentElement.classList.add(isDark ? "dark" : "light")
+          document.documentElement.style.colorScheme = isDark ? "dark" : "light"
+        } catch (_) {
+          /* fall through to light */
+        }
+      })()
+    </script>
+
+    <!--
+      Splash style. Hard-coded values (not Tailwind tokens) because
+      this has to render BEFORE the stylesheet loads. Theme-aware via
+      the .dark class the boot script set above.
+    -->
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fafaf9;
+        color: #1c1917;
+      }
+      html.dark,
+      html.dark body {
+        background: #0c0a09;
+        color: #fafaf9;
+      }
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 18px;
+        background: #fafaf9;
+        z-index: 9999;
+        transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      html.dark #splash {
+        background: #0c0a09;
+      }
+      #splash[data-hide="1"] {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash-mark {
+        height: 56px;
+        width: 56px;
+        border-radius: 12px;
+        background: #0c0a09;
+        color: #fafaf9;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 1px 2px rgba(28, 25, 23, 0.06),
+          0 8px 24px -8px rgba(28, 25, 23, 0.18);
+      }
+      html.dark #splash-mark {
+        background: #fafaf9;
+        color: #0c0a09;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35),
+          0 8px 24px -8px rgba(0, 0, 0, 0.5);
+      }
+      #splash-mark svg {
+        width: 38px;
+        height: 38px;
+      }
+      #splash-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        color: #a8a29e;
+      }
+      html.dark #splash-row {
+        color: #78716c;
+      }
+      #splash-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        background: currentColor;
+        animation: splash-pulse 1.2s ease-in-out infinite;
+      }
+      @keyframes splash-pulse {
+        0%,
+        100% {
+          opacity: 0.25;
+          transform: scale(0.85);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.1);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-canvas text-ink font-sans">
+    <!--
+      Static splash. Replaced by the React tree once `main.tsx` mounts
+      (see end of that file for the fade-out + removal).
+    -->
+    <div id="splash" role="status" aria-label="Loading">
+      <div id="splash-mark">
+        <svg
+          viewBox="0 0 28 28"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="6" y="6" width="16" height="16" rx="2.5" />
+          <path d="M8.5 18 L13 13 L15.5 15.5 L17.5 13.5 L19.5 18" />
+          <circle cx="10.5" cy="10.5" r="1.1" fill="currentColor" stroke="none" />
+        </svg>
+      </div>
+      <div id="splash-row">
+        <span id="splash-dot"></span>
+        <span>Loading</span>
+      </div>
+    </div>
+
+    <div id="root"></div>
+    <script type="module" src="/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,24 @@
+# Build output
+out/
+release/
+
+# Distribution artefacts — we keep the README so users see install
+# instructions on GitHub, but the binaries themselves are too large
+# to commit and get rebuilt locally anyway.
+dist/*
+!dist/README.md
+
+# Vendored Node sidecar binaries — refetched via `npm run fetch-node`
+resources/node-binaries/*/
+!resources/node-binaries/.gitkeep
+
+# Dependencies + caches
+node_modules/
+coverage/
+.cache/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/
+*.log

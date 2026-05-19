@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <!-- Rounded-square base. ~22% radius matches macOS Big Sur+ icon
+       continuity curve. Ink-near-black, never #000. -->
+  <rect width="1024" height="1024" rx="224" fill="#0c0a09"/>
+
+  <!-- Photo frame -->
+  <rect
+    x="232" y="232" width="560" height="560" rx="80"
+    stroke="#fafaf9" stroke-width="44" fill="none"/>
+
+  <!-- "Picture mountain" silhouette inside -->
+  <path
+    d="M312 660 L460 472 L580 600 L660 512 L760 660"
+    stroke="#fafaf9" stroke-width="44"
+    stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Sun / circle. Slightly off-centre so the icon reads at 32 px
+       even when the strokes blur. -->
+  <circle cx="368" cy="376" r="40" fill="#fafaf9"/>
+
+  <!-- Subtle "transparency cutout" hint — a tiny checker swatch in
+       the bottom-right corner of the frame, signalling that the
+       output is a transparent PNG. Two pale tiles, very low contrast,
+       only readable at sizes >= 256 px. -->
+  <g opacity="0.18">
+    <rect x="700" y="700" width="48" height="48" fill="#fafaf9"/>
+    <rect x="700" y="748" width="48" height="48" fill="#a8a29e"/>
+    <rect x="748" y="700" width="48" height="48" fill="#a8a29e"/>
+    <rect x="748" y="748" width="48" height="48" fill="#fafaf9"/>
+  </g>
+</svg>
