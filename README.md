@@ -6,11 +6,9 @@ once the weights are downloaded (~180 MB, one time) the app runs
 fully offline. Three input modes: a folder of images, an
 Excel / CSV file with URLs, or a Google Sheets URL.
 
-![Background Remover screenshot — placeholder](docs/screenshot.png)
+![Main view — pick a folder or spreadsheet, pick an output, click Process](images/product.png)
 
-> The screenshot above lives in `docs/screenshot.png` once you take
-> one. The app currently runs at 1100×760 with a Linear-style dark
-> mode and an Inter type stack.
+![Completion modal — celebratory glyph, before/after preview, duration + Open in Finder](images/finish.png)
 
 ---
 
